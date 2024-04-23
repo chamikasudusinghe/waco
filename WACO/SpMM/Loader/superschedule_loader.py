@@ -4,54 +4,76 @@ import numpy as np
 import itertools
 import os
 from itertools import permutations, product
+import random
 
 class SuperScheduleDataset(torch.utils.data.Dataset):
-    def __init__(self, name):
-      waco_prefix = os.getenv("WACO_HOME")
-      if waco_prefix is None : 
-        print("Err : environment variable WACO_HOME is not defined")
-        return 
-      with open("./TrainingData/CollectedData/"+name+".txt") as f:
+    def __init__(self, name, flag):
+      with open("/home/chamika2/dataset/"+flag+"/"+name+".txt") as f:
         lines = f.read().splitlines()
         lines = [line.split() for line in lines]
 
-      split_ = [1<<p for p in range(17)]
-      index_ = ['i1', 'i0', 'k1', 'k0', 'j1', 'j0']
+      isplit_ = [0,1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536]
+      jsplit_ = [0,1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072,100000000]
+      ksplit_ = [0, 1, 2, 4, 8, 16, 32, 64, 128]
+      index_ = [1,2,3,4,5,6]
       format_ = [0, 1] #(C,U)
-      parnum_ = [48]
-      parchunk_ = [1<<p for p in range(9)] #[1,256]
+      parchunk_ = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256]
+      
+      bind1_ = [0, 1, 2, 3, 4]
+      bind2_ = [0, 1, 2, 3, 4]
+      unroll_ = [0, 1, 2, 3, 4]
+      
+      barrier_ = [0, 1]
+      bypass_ = [0, 1]
+      reorder_ = [0, 1]
+      
+      device_ = [1,2,3]
 
       schedules = []
       runtimes = []
 
+      if (len(lines))>100:
+        lines = random.sample(lines, 100)
       for idx, line in enumerate(lines) :
-        i0s = split_.index(int(line[0]))
-        k0s = split_.index(int(line[1]))
-        j0s = split_.index(int(line[2]))
+        i0s = isplit_.index(int(float(line[0])))
+        k0s = jsplit_.index(int(float(line[1])))
+        j0s = ksplit_.index(int(float(line[2])))
 
         order = line[3:9]
-        perm = np.zeros((len(index_), len(index_)))
-        perm[index_.index(order[0]),0] = 1 #i1
-        perm[index_.index(order[1]),1] = 1 #i0
-        perm[index_.index(order[2]),2] = 1 #k1
-        perm[index_.index(order[3]),3] = 1 #k0
-        perm[index_.index(order[4]),4] = 1 #j1
-        perm[index_.index(order[5]),5] = 1 #j0
+        perm = np.zeros((6,6))
+        if flag == "cpu" or flag == "gpu":
+          perm[index_.index(int(float(order[0]))),0] = 1
+          perm[index_.index(int(float(order[1]))),1] = 1
+          perm[index_.index(int(float(order[2]))),2] = 1
+          perm[index_.index(int(float(order[3]))),3] = 1
+          if flag == "cpu":
+            perm[index_.index(int(float(order[4]))),4] = 1
+            perm[index_.index(int(float(order[5]))),5] = 1
         perm = perm.flatten()
 
-        i1f = format_.index(int(line[9]))
-        i0f = format_.index(int(line[10]))
-        k1f = format_.index(int(line[11]))
-        k0f = format_.index(int(line[12]))
+        i1f = format_.index(int(float(line[9])))
+        i0f = format_.index(int(float(line[10])))
+        k1f = format_.index(int(float(line[11])))
+        k0f = format_.index(int(float(line[12])))
 
-        p1 = index_.index(line[13])
-        p2 = parnum_.index(int(line[14]))
-        p3 = parchunk_.index(int(line[15]))
+        p = parchunk_.index(int(float(line[13])))
+        
+        g1 = bind1_.index(int(float(line[14])))
+        g2 = bind2_.index(int(float(line[15])))
+        g3 = unroll_.index(int(float(line[16])))
+        
+        sp1 = barrier_.index(int(float(line[17])))
+        sp2 = bypass_.index(int(float(line[18])))
+        sp3 = reorder_.index(int(float(line[19])))
+        
+        device = device_.index(int(float(line[20])))
 
         concat = np.array([i0s,k0s,j0s,
                            perm,
-                           i1f,i0f,k1f,k0f,
-                           p1,p2,p3], dtype=object)
+                           i1f,i0f,k1f,k0f,p,
+                           g1,g2,g3,
+                           sp1,sp2,sp3,
+                           device], dtype=object)
         concat = np.hstack(concat)
         runtime = float(line[-1])
           
@@ -95,7 +117,7 @@ class TrainingScheduleDataset(torch.utils.data.Dataset):
         uniqstr = set()
       
       for name in names : 
-        with open("./TrainingData/CollectedData/"+name+".txt") as f:
+        with open("/home/chamika2/dataset/spade/"+name+".txt") as f:
           lines = f.read().splitlines()
           lines = [line.split() for line in lines]
         

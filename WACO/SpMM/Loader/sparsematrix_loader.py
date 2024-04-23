@@ -4,12 +4,7 @@ import MinkowskiEngine as ME
 import os
 
 def from_csr(filename) :
-  waco_prefix = os.getenv("WACO_HOME")
-  if waco_prefix is None : 
-    print("Err : environment variable WACO_HOME is not defined")
-    return 
-
-  csr = np.fromfile(waco_prefix+"/dataset/"+filename+".csr", dtype='<i4')
+  csr = np.fromfile("/shared/tla/sparse/waco/dataset/"+filename+".csr", dtype='<i4')
   num_row,num_col,nnz = csr[0],csr[1],csr[2]
   coo = np.zeros((nnz,2),dtype=int)
   coo[:,1] = csr[3+num_row+1:]
@@ -31,19 +26,15 @@ def collate_fn(list_data):
 
 class SparseMatrixDataset(torch.utils.data.Dataset):
     def __init__(self, filename):
-      waco_prefix = os.getenv("WACO_HOME")
-      if waco_prefix == None : 
-        print("Err : environment variable WACO_HOME is not defined")
-        quit() 
       with open(filename) as f :
         self.names = f.read().splitlines() 
-      # Preparing Data
+        # Preparing Data
       self.standardize = {}
       self.normalize = {}
-      with open("./TrainingData/train.txt") as f :
+      with open(filename) as f :
         total_rows, total_cols, total_nnzs = [], [], []
         for filename in f.read().splitlines() :
-          csr = np.fromfile(waco_prefix+"/dataset/"+filename+".csr", count=3, dtype='<i4')
+          csr = np.fromfile("/shared/tla/sparse/waco/dataset/"+filename+".csr", count=3, dtype='<i4')
           total_rows.append(csr[0])
           total_cols.append(csr[1])
           total_nnzs.append(csr[2])
@@ -79,6 +70,3 @@ class SparseMatrixDataset(torch.utils.data.Dataset):
         "label" : label, 
         "shape" : shape 
       }
-
-
-
