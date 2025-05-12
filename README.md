@@ -8,6 +8,22 @@ You can compile a generated code from TACO with `gcc` with OpenMP but we ***high
 
 You can download from https://www.intel.com/content/www/us/en/developer/tools/oneapi/dpc-compiler.html#gs.fyw7ne . It is important to install **Intel C++ Compiler Classic (`icc` and `icpc`)**, not an OneAPI compiler.
 
+e.g,: wget https://registrationcenter-download.intel.com/akdlm/IRC_NAS/c4d2aef3-3123-475e-800c-7d66fd8da2a5/intel-dpcpp-cpp-compiler-2025.1.1.9_offline.sh
+9  ./intel-dpcpp-cpp-compiler-2025.1.1.9_offline.sh
+source /home/chamika2/intel/oneapi/setvars.sh
+which dpcpp
+echo 'source /home/chamika2/intel/oneapi/setvars.sh' >> ~/.bashrc (for permanently)
+source ~/.bashrc
+
+## Virtual Environment
+
+You can set up a conda environment to make sure that the below changes would not affect your system. Setting up miniconda would be sufficient.
+
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash ~/Miniconda3-latest-Linux-x86_64.sh
+conda create --name waco python=3.8
+conda activate waco
+
 ## Installation
 #### 0. clone the repo and set `WACO_HOME` as working directory.
 ```
@@ -28,13 +44,15 @@ pip install .
 cd $WACO_HOME/code_generator/taco
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake -DCMAKE_BUILD_TYPE=Release .. (for gcc)
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx (modified for icpx)
 make -j8
 ```
 #### 4. Make code_generator
 ```
 cd $WACO_HOME/code_generator
-make icc # 'make gcc' if you use gcc
+export OMP_NUM_THREADS=64
+make intel -j8 # 'make gcc' if you use gcc
 ```
 
 ## How to use
@@ -51,7 +69,7 @@ Note that all the sparse matrices should placed in `$WACO_HOME/dataset/`.
 
 Once we generate randomly sampled SuperSchedules, user needs to collect a runtime of (sparse matrix, SuperSchedule). To do this :
 ```
-cd $WACO_HOME/WACO/code_generator
+cd $WACO_HOME/code_generator
 ./spmm ../dataset/"YourSparseMatrixName".csr ../WACO/training_data_generator/config/"YourSparseMatrixName".txt
 (Example) ./spmm ../dataset/nemspmm1_16x4_0.csr ../WACO/training_data_generator/config/nemspmm1_16x4_0.txt
 ```

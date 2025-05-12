@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
   
   cout << "Use " << NUMCORE << " Threads" << endl; 
   M.init_all();
-  M.parallelize("i", 48, 32);
+  M.parallelize("i", 64, 32);
   M.pack_all();
   M.compile();
   stringstream fixedCSR;

@@ -8,6 +8,7 @@ gccspmv :
 	g++ -std=c++17 -O3 -march=native -fopenmp -DGCC -DNUMCORE=${NUMCORE} -I"./include" spmv.cc -o spmv -lm -ldl
 gccsddmm :	
 	g++ -std=c++17 -O3 -march=native -fopenmp -DGCC -DNUMCORE=${NUMCORE} -I"./include" sddmm.cc -o sddmm -lm -ldl
+
 iccspmm :	
 	icpc -std=c++17 -O3 -march=native -qopenmp -DICC -DNUMCORE=${NUMCORE} -I"./include" spmm.cc -o spmm -lm -ldl 
 iccspmv :	
@@ -15,5 +16,13 @@ iccspmv :
 iccsddmm :	
 	icpc -std=c++17 -O3 -march=native -qopenmp -DICC -DNUMCORE=${NUMCORE} -I"./include" sddmm.cc -o sddmm -lm -ldl
 
+intelspmm :	
+	icpx -std=c++17 -O3 -march=native -fopenmp -DINTEL -DNUMCORE=${NUMCORE} -I"./include" spmm.cc -o spmm -lm -ldl 
+intelspmv :	
+	icpx -std=c++17 -O3 -march=native -fopenmp -DINTEL -DNUMCORE=${NUMCORE} -I"./include" spmv.cc -o spmv -lm -ldl 
+intelsddmm :	
+	icpx -std=c++17 -O3 -march=native -fopenmp -DINTEL -DNUMCORE=${NUMCORE} -I"./include" sddmm.cc -o sddmm -lm -ldl
+
 gcc : gccspmm gccspmv gccsddmm
 icc : iccspmm iccspmv iccsddmm
+intel : intelspmm intelspmv intelsddmm

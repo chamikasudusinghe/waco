@@ -308,7 +308,11 @@ class ExecutionManager{
       string source = " -write-compute=taco_kernel"+suffix+".c";
       string schedule = gen_sched();
       taco_command += kernel + source + schedule ;
+      // generate the taco file
+      int taco_compile = system(taco_command.c_str());
+      // Add C-compatible header
       string header = "#include <stdint.h> \\n" 
+                      "extern \\\"C\\\" {\\n"
                       "typedef enum { COMPRESSED, UNCOMPRESSED } taco_mode_t;\\n"
                       "typedef struct {\\n"
                       "  int32_t      order;\\n" 
@@ -321,21 +325,30 @@ class ExecutionManager{
                       "  int32_t      vals_size;\\n" 
                       "} taco_tensor_t;\\n";
       string taco_header_command = "sed -i '1s/^/" + header + "/' taco_kernel" + suffix + ".c";
-      int taco_compile = system(taco_command.c_str());
-      int taco_add_header = system(taco_header_command.c_str());
+      system(taco_header_command.c_str());
+      string taco_close_command = "echo \"}\" >> taco_kernel" + suffix + ".c";
+      system(taco_close_command.c_str());
+      // rename after generation and modification
+      string rename_command = "mv taco_kernel" + suffix + ".c taco_kernel" + suffix + ".cpp";
+      system(rename_command.c_str());
       if (tensor_rhs.size() == 3) {
         string patch_command = "python " + waco_prefix+"/code_generator/include/sddmm_patch.py ./taco_kernel"+suffix+".c";
         system(patch_command.c_str());
       }
 
       if (is_parallel) {
+        string gcc_command;
         #ifdef ICC
-        string gcc_command = "icc -march=native -mtune=native -O3 -ffast-math -qopenmp -fPIC -shared taco_kernel" + suffix + ".c -o taco_kernel" + suffix + ".so -lm";
-        #elif GCC
-        string gcc_command = "gcc -march=native -mtune=native -O3 -fopenmp -ffast-math -fPIC -shared taco_kernel" + suffix + ".c -o taco_kernel" + suffix + ".so -lm";
+          gcc_command = "icpc -march=native -mtune=native -O3 -ffast-math -qopenmp -fPIC -shared taco_kernel" + suffix + ".cpp -o taco_kernel" + suffix + ".so -lm";
+        #elif defined(GCC)
+          gcc_command = "gcc -march=native -mtune=native -O3 -fopenmp -ffast-math -fPIC -shared taco_kernel" + suffix + ".cpp -o taco_kernel" + suffix + ".so -lm";
+        #elif defined(INTEL)
+          gcc_command = "icpx -march=native -mtune=native -O3 -ffast-math -qopenmp -fPIC -shared taco_kernel" + suffix + ".cpp -o taco_kernel" + suffix + ".so -lm";
+        #else
+          #error "No valid compiler macro defined (GCC, ICC, INTEL)"
         #endif
         int gcc_compile = system(gcc_command.c_str());
-      }
+      }      
 
       if (lib_handle) {dlclose(lib_handle);}
       string taco_kernel = "./taco_kernel"+suffix+".so";
